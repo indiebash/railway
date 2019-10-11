@@ -1,0 +1,12 @@
+[package]
+name = "railway"
+version = "0.1.0"
+authors = ["Aaron Sorensen <thatdevguyaaron@Gmail.com>"]
+edition = "2018"
+
+[dependencies]
+futures = "0.1.29"
+tokio = "0.1.22"
+websocket = "0.23.0"
+serde = {version = "1.0.101", features = ["derive"]}
+serde_json = "1.0.41"
