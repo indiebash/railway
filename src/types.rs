@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use serde_json::Value;
 use serde::{Deserialize, Serialize};
 
@@ -8,14 +7,10 @@ pub struct Component {
     pub value: Value
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Message {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Entity {
     pub id: u64,
     pub components: Vec<Component>
 }
 
-// Entity is comprised of component names and their data
-pub type Entity = HashMap<String,Value>;
-
-// Each entity is tracked by a uid
-pub type Entities = HashMap<u64,Entity>;
+pub type Entities = Vec<Entity>;

@@ -33,7 +33,7 @@ fn main() {
     // A sink is used to send data to an open client connection
     let connections = Arc::new(RwLock::new(HashMap::new()));
     // Hashmap of id:entity pairs. This is basically the game state
-    let entities = Arc::new(RwLock::new(HashMap::new()));
+    let entities = Arc::new(RwLock::new(Vec::new()));
     // Used to assign a unique id to each new player
     let counter = Arc::new(RwLock::new(0));
 
@@ -74,7 +74,11 @@ fn main() {
                     let f = stream
                         .for_each(move |msg| {
                             process_message(&msg, entities.clone());
-                            send_state(connections_inner.clone(), entities.clone(), executor_3inner.clone());
+                            send_state(
+                                connections_inner.clone(),
+                                entities.clone(),
+                                executor_3inner.clone(),
+                            );
                             Ok(())
                         })
                         .map_err(|_| ());
@@ -142,20 +146,32 @@ fn send_state(
 // Update entity state with component data
 fn process_message(msg: &OwnedMessage, entities: Arc<RwLock<types::Entities>>) {
     if let OwnedMessage::Text(ref txt) = *msg {
+        let message: types::Entity = serde_json::from_str(txt).unwrap();
 
-        let message: types::Message = serde_json::from_str(txt).unwrap();
+        // Open RW lock
+        let mut temp = entities.write().unwrap();
+        
+        // If no entity by that id create one.
+        if !temp.iter().any(|x| x.id == message.id) {
+            temp.push(types::Entity {
+                id: message.id,
+                components: Vec::new(),
+            });
+        }
+
+        // Get entity index we're working on
+        let index = temp.iter().position(|x| x.id == message.id).unwrap();
 
         // Iterate over component data in our message
         for component in message.components {
-            // Grab entity or create a new one
-            let mut temp = entities.write().unwrap();
-            let entity = match temp.entry(message.id) {
-                Vacant(entry) => entry.insert(HashMap::new()),
-                Occupied(entry) => entry.into_mut(),
-            };
-
-            // Update component data on entity
-            entity.insert(component.name, component.value);
+            if temp[index].components.iter().any(|x| x.name == component.name) {
+                // Has component, overrite 
+                let component_index = temp[index].components.iter().position(|x| x.name == component.name).unwrap();
+                temp[index].components[component_index] = component;
+            } else {
+                // Doesn't have component, add it
+                temp[index].components.push(component);
+            }
         }
 
         //println!("entities: {:?}", entities);
